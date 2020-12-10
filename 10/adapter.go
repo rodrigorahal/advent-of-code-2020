@@ -45,6 +45,25 @@ func paths(nums []int, i int, memo map[int]int) int {
 	return res
 }
 
+func count(nums []int, i int, memo map[int]int) int {
+	if i == 0 {
+		return 1
+	}
+
+	if val, ok := memo[i]; ok {
+		return val
+	}
+	var ans int
+	for j := i - 1; j > i-4 && j >= 0; j-- {
+		diff := nums[i] - nums[j]
+		if diff <= 3 {
+			ans += count(nums, j, memo)
+		}
+	}
+	memo[i] = ans
+	return memo[i]
+}
+
 func read(r io.Reader) []int {
 	var result []int
 
@@ -68,4 +87,5 @@ func main() {
 	fmt.Println(diff(nums))
 
 	fmt.Println(paths(nums, 0, make(map[int]int)))
+	fmt.Println(count(nums, len(nums)-1, make(map[int]int)))
 }
