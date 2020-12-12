@@ -109,8 +109,9 @@ func count(state [][]string) int {
 	return acc
 }
 
-func step(state [][]string, fn adjacent, threshold int) [][]string {
+func step(state [][]string, fn adjacent, threshold int) ([][]string, bool) {
 	prev := deepcopy(state)
+	changed := false
 
 	for i, row := range prev {
 		for j, seat := range row {
@@ -120,29 +121,29 @@ func step(state [][]string, fn adjacent, threshold int) [][]string {
 			case "L":
 				if !any(prev, fn(state, i, j)) {
 					state[i][j] = "#"
+					changed = true
 				}
 			case "#":
 				if occupied(prev, fn(state, i, j)) >= threshold {
 					state[i][j] = "L"
+					changed = true
 				}
 			}
 		}
 	}
-	return state
+	return state, changed
 }
 
 func run(state [][]string, fn adjacent, threshold int) int {
-	var prevOccupied int
+	var changed bool
 
 	next := state
 
 	for n := 0; n < 200; n++ {
-		next = step(next, fn, threshold)
-		occupied := count(next)
-		if occupied == prevOccupied {
-			return occupied
+		next, changed = step(next, fn, threshold)
+		if !changed {
+			return count(next)
 		}
-		prevOccupied = occupied
 	}
 	return -1
 }
