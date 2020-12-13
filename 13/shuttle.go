@@ -116,9 +116,41 @@ func congruence(busIDs []string) int {
 	return x % N
 }
 
+func search(busIDs []string) int {
+	var idxs []int
+	var ids []int
+
+	for idx, id := range busIDs {
+		if id != "x" {
+			busID, _ := strconv.Atoi(id)
+			idxs = append(idxs, idx)
+			ids = append(ids, busID)
+		}
+	}
+
+	candidate := 0
+	runningProduct := 1
+	for i := range ids {
+		idx := idxs[i]
+		id := ids[i]
+		for (candidate+idx)%id != 0 {
+			candidate += runningProduct
+		}
+		/*
+			Once we find a candidate that satisfies one id constrain
+			Any candidate that is a multiple of candidate*id also satisfies the constrains:
+			if x ⩭ 0 mod(id) then id*x is also id*x ⩭ 0 mod(id).
+			So we go on searching by runningProduct of id*candidate for next constraints
+		*/
+		runningProduct *= id
+	}
+	return candidate
+}
+
 func main() {
 	file, _ := os.Open("input.txt")
 	target, busIDs := read(file)
 	fmt.Println(departures(busIDs, target))
 	fmt.Println(congruence(busIDs))
+	fmt.Println(search(busIDs))
 }
