@@ -38,14 +38,6 @@ func move(position *Compass, instruction Instruction) {
 	}
 }
 
-func forward(position *Compass, direction *Compass, instruction Instruction) {
-	if direction.E != 0 {
-		position.E += direction.E * instruction.val
-	} else {
-		position.N += direction.N * instruction.val
-	}
-}
-
 func turn(c *Compass, instruction Instruction) {
 
 	times := instruction.val / 90
@@ -70,7 +62,8 @@ func run(position *Compass, direction *Compass, instructions []Instruction) int 
 			turn(direction, instruction)
 		}
 		if instruction.cmd == "F" {
-			forward(position, direction, instruction)
+			position.E += direction.E * instruction.val
+			position.N += direction.N * instruction.val
 		} else {
 			move(position, instruction)
 		}
