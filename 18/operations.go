@@ -43,7 +43,7 @@ func read(r io.Reader) []Equation {
 
 func matchParens(operations []string) map[int]int {
 	var open []int
-	openByClose := make(map[int]int)
+	openIndexByCloseParen := make(map[int]int)
 
 	for i, token := range operations {
 		switch token {
@@ -51,7 +51,7 @@ func matchParens(operations []string) map[int]int {
 			open = append(open, i)
 			i++
 		case ")":
-			openByClose[i] = open[len(open)-1]
+			openIndexByCloseParen[i] = open[len(open)-1]
 			open = open[:len(open)-1]
 			i++
 		default:
@@ -60,84 +60,96 @@ func matchParens(operations []string) map[int]int {
 
 	}
 
-	return openByClose
+	return openIndexByCloseParen
 }
 
-func all(equations []Equation) int {
+func run(equations []Equation) int {
 	var sum int
 	for _, equation := range equations {
-		sum += run(equation.operands, equation.operations)
+		sum += solve(equation)
 	}
 	return sum
 }
 
-func run(operands []int, operations []string) int {
-	n := len(operands)
-	for n > 1 {
-		operands, operations = solve(operands, operations)
-		n = len(operands)
+func solve(equation Equation) int {
+	for len(equation.operands) > 1 {
+		equation = step(equation)
 	}
-	return operands[0]
+	return equation.operands[0]
 }
 
-func solve(operands []int, operations []string) ([]int, []string) {
+func step(equation Equation) Equation {
+	operands := equation.operands
+	operations := equation.operations
 
-	openByClose := matchParens(operations)
+	openIndexByCloseParen := matchParens(operations)
 
+	// Find operable paren
 	open := -1
 	close := -1
-
-	for c, o := range openByClose {
+	for c, o := range openIndexByCloseParen {
 		if close == -1 || c < close {
 			close = c
 			open = o
 		}
 	}
 
-	nopen := 0
-	for _, o := range openByClose {
+	nesting := 0
+	for _, o := range openIndexByCloseParen {
 		if o < open {
-			nopen++
+			nesting++
 		}
 	}
 
-	if len(openByClose) == 0 {
+	if len(openIndexByCloseParen) == 0 {
 		open = 0
 		close = len(operations) - 1
 	}
 
 	window := operations[open : close+1]
 
+	// Apply priority operations around pivot
+	pivot := open - nesting
 	for _, op := range window {
 		var res int
 		switch op {
 		case "*":
-			a := operands[open-nopen]
-			b := operands[open-nopen+1]
-			res = a * b
+			pivot++
 		case "+":
-			a := operands[open-nopen]
-			b := operands[open-nopen+1]
+			a := operands[pivot]
+			b := operands[pivot+1]
 			res = a + b
+			operands = append(operands[:pivot], operands[pivot+1:]...)
+			operands[pivot] = res
 		default:
 			continue
 		}
+	}
 
-		operands = append(operands[:open-nopen], operands[open-nopen+1:]...)
-		operands[open-nopen] = res
+	// Apply remaining operations
+	for _, op := range window {
+		var res int
+		switch op {
+		case "*":
+			a := operands[open-nesting]
+			b := operands[open-nesting+1]
+			res = a * b
+		default:
+			continue
+		}
+		operands = append(operands[:open-nesting], operands[open-nesting+1:]...)
+		operands[open-nesting] = res
 	}
 
 	operations = append(operations[:open], operations[close+1:]...)
 
-	// fmt.Println(operands, operations)
-
-	return operands, operations
+	return Equation{operands, operations}
 }
 
 func main() {
 	file, _ := os.Open("input.txt")
 	equations := read(file)
 
-	fmt.Println(all(equations))
+	fmt.Println(run(equations))
 
 }
