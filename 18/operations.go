@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"container/list"
 	"fmt"
 	"io"
 	"os"
@@ -10,12 +9,18 @@ import (
 	"strings"
 )
 
-func read(r io.Reader) (*list.List, *list.List) {
-	operands := list.New()
-	operations := list.New()
+type Equation struct {
+	operands   []int
+	operations []string
+}
+
+func read(r io.Reader) []Equation {
+	var equations []Equation
 
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
+		var operands []int
+		var operations []string
 		line := scanner.Text()
 		line = strings.ReplaceAll(line, "(", "( ")
 		line = strings.ReplaceAll(line, ")", " ) ")
@@ -26,29 +31,22 @@ func read(r io.Reader) (*list.List, *list.List) {
 			}
 			number, err := strconv.Atoi(token)
 			if err == nil {
-				operands.PushBack(number)
+				operands = append(operands, number)
 			} else {
-				operations.PushBack(token)
+				operations = append(operations, token)
 			}
 		}
+		equations = append(equations, Equation{operands, operations})
 	}
-	return operands, operations
+	return equations
 }
 
-func printList(l *list.List) {
-	for e := l.Front(); e != nil; e = e.Next() {
-		fmt.Print(e.Value)
-	}
-	fmt.Println()
-}
-
-func matchParens(operations *list.List) map[int]int {
+func matchParens(operations []string) map[int]int {
 	var open []int
 	openByClose := make(map[int]int)
 
-	i := 0
-	for e := operations.Front(); e != nil; e = e.Next() {
-		switch e.Value {
+	for i, token := range operations {
+		switch token {
 		case "(":
 			open = append(open, i)
 			i++
@@ -59,11 +57,31 @@ func matchParens(operations *list.List) map[int]int {
 		default:
 			i++
 		}
+
 	}
+
 	return openByClose
 }
 
-func solveSingleParens(operands, operations *list.List) (*list.List, *list.List) {
+func all(equations []Equation) int {
+	var sum int
+	for _, equation := range equations {
+		sum += run(equation.operands, equation.operations)
+	}
+	return sum
+}
+
+func run(operands []int, operations []string) int {
+	n := len(operands)
+	for n > 1 {
+		operands, operations = solve(operands, operations)
+		n = len(operands)
+	}
+	return operands[0]
+}
+
+func solve(operands []int, operations []string) ([]int, []string) {
+
 	openByClose := matchParens(operations)
 
 	open := -1
@@ -77,79 +95,49 @@ func solveSingleParens(operands, operations *list.List) (*list.List, *list.List)
 	}
 
 	nopen := 0
-
 	for _, o := range openByClose {
 		if o < open {
 			nopen++
 		}
 	}
 
-	i := 0
-	var paren, op *list.Element
-	for e := operations.Front(); e != nil; e = e.Next() {
-		if i == open {
-			paren = e
-		}
-		if i == open+1 {
-			op = e
-			break
-		}
-		i++
-	}
-	fmt.Println("op:", op.Value)
-	operations.Remove(paren)
-
-	fmt.Println("nopen:", nopen)
-
-	i = 0
-	j := open - nopen
-	fmt.Printf("j: %d\n", j)
-	var a, b, c *list.Element
-	for e := operands.Front(); e != nil; e = e.Next() {
-		fmt.Println("i, e:", i, e.Value)
-		if i == j-1 {
-			c = e
-		}
-		if i == j {
-			fmt.Println("true")
-			a = e
-		}
-		if i == j+1 {
-			b = e
-			break
-		}
-		i++
-	}
-	fmt.Println("a, b, c", a.Value, b.Value, c.Value)
-
-	operands.Remove(a)
-	operands.Remove(b)
-
-	// apply
-	var result int
-	if op.Value == "*" {
-		result = a.Value.(int) * b.Value.(int)
-	} else {
-		result = a.Value.(int) + b.Value.(int)
+	if len(openByClose) == 0 {
+		open = 0
+		close = len(operations) - 1
 	}
 
-	operands.InsertAfter(result, c)
+	window := operations[open : close+1]
+
+	for _, op := range window {
+		var res int
+		switch op {
+		case "*":
+			a := operands[open-nopen]
+			b := operands[open-nopen+1]
+			res = a * b
+		case "+":
+			a := operands[open-nopen]
+			b := operands[open-nopen+1]
+			res = a + b
+		default:
+			continue
+		}
+
+		operands = append(operands[:open-nopen], operands[open-nopen+1:]...)
+		operands[open-nopen] = res
+	}
+
+	operations = append(operations[:open], operations[close+1:]...)
+
+	// fmt.Println(operands, operations)
 
 	return operands, operations
 }
 
 func main() {
-	file, _ := os.Open("test.txt")
-	operands, operations := read(file)
+	file, _ := os.Open("input.txt")
+	equations := read(file)
 
-	printList(operands)
-	printList(operations)
-
-	fmt.Println(matchParens(operations))
-
-	solveSingleParens(operands, operations)
-
-	printList(operands)
-	printList(operations)
+	fmt.Println(all(equations))
 
 }
