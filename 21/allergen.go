@@ -106,20 +106,17 @@ func narrow(canContainByAllergen map[string]Set) []Allergenic {
 	}
 
 	for unsolved.Size() > 1 {
-		for allergen, set := range canContainByAllergen {
-			if set.Size() == 1 {
-				for a, s := range canContainByAllergen {
-					if a == allergen {
-						continue
+		for _, possible := range canContainByAllergen {
+			if possible.Size() == 1 {
+
+				for toSolve := range unsolved {
+					toRemove := canContainByAllergen[toSolve]
+
+					for ingredient := range possible {
+						toRemove.Remove(ingredient)
 					}
-					var ingredient string
-					for k := range set {
-						ingredient = k
-						break
-					}
-					s.Remove(ingredient)
-					if s.Size() == 1 {
-						unsolved.Remove(a)
+					if toRemove.Size() == 1 {
+						unsolved.Remove(toSolve)
 					}
 				}
 			}
