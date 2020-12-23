@@ -64,6 +64,20 @@ func count(nums []int, i int, memo map[int]int) int {
 	return memo[i]
 }
 
+func iterative(nums []int) int {
+	ways := make(map[int]int)
+
+	ways[0] = 1
+	for i, num := range nums {
+		for _, next := range nums[i+1 : i+4] {
+			if next-num <= 3 {
+				ways[next] += ways[num]
+			}
+		}
+	}
+	return ways[nums[len(nums)-1]]
+}
+
 func read(r io.Reader) []int {
 	var result []int
 
@@ -88,4 +102,5 @@ func main() {
 
 	fmt.Println(paths(nums, 0, make(map[int]int)))
 	fmt.Println(count(nums, len(nums)-1, make(map[int]int)))
+	fmt.Println(iterative(nums))
 }
