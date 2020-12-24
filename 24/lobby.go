@@ -43,6 +43,16 @@ func (h HexCoord) Move(step string) HexCoord {
 	}
 }
 
+func (h HexCoord) ToAxial() AxialCoord {
+	col := h.X + (h.Z-(h.Z&1))/2
+	row := h.Z
+	return AxialCoord{row, col}
+}
+
+type AxialCoord struct {
+	Row, Col int
+}
+
 func apply(steps []string, start HexCoord) HexCoord {
 	cur := start
 	for _, step := range steps {
@@ -158,12 +168,67 @@ func count(isFlipped map[HexCoord]bool) int {
 	return sum
 }
 
+func Print(floor map[HexCoord]bool) {
+	axialToHex := make(map[AxialCoord]HexCoord)
+
+	var minRow, maxRow int
+	var minCol, maxCol int
+
+	for tile := range floor {
+		a := tile.ToAxial()
+		axialToHex[a] = tile
+
+		if a.Row < minRow {
+			minRow = a.Row
+		}
+		if a.Row > maxRow {
+			maxRow = a.Row
+		}
+
+		if a.Col < minCol {
+			minCol = a.Col
+		}
+
+		if a.Col > maxCol {
+			maxCol = a.Col
+		}
+	}
+
+	var grid [][]string
+
+	rowOffset := minRow
+	maxRow = maxRow - minRow + 1
+	minRow = 0
+
+	colOffset := minCol
+	maxCol = maxCol - minCol + 1
+	minCol = 0
+
+	for i := minRow; i <= maxRow; i++ {
+		grid = append(grid, make([]string, maxCol+1))
+		for j := minCol; j <= maxCol; j++ {
+			a := AxialCoord{i + rowOffset, j + colOffset}
+			t, ok := axialToHex[a]
+			var s string = "_"
+
+			if ok && floor[t] {
+				s = "#"
+			}
+
+			grid[i][j] = s
+		}
+		fmt.Println(grid[i])
+	}
+}
+
 func main() {
 	file, _ := os.Open("input.txt")
 	tiles := read(file)
 
 	isFlipped := flip(tiles)
 	fmt.Println(count(isFlipped))
+
+	// Print(isFlipped)
 
 	isFlipped = run(isFlipped, 100)
 	fmt.Println(count(isFlipped))
